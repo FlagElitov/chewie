@@ -17,10 +17,17 @@ import 'package:video_player/video_player.dart';
 class MaterialControls extends StatefulWidget {
   const MaterialControls({
     this.showPlayButton = true,
+    this.expandIcon = const SizedBox.shrink(),
+    this.moveToPrevious = const SizedBox.shrink(),
+    this.moveToNext = const SizedBox.shrink(),
     super.key,
   });
 
   final bool showPlayButton;
+
+  final Widget expandIcon;
+  final Widget moveToPrevious;
+  final Widget moveToNext;
 
   @override
   State<StatefulWidget> createState() {
@@ -255,11 +262,8 @@ class _MaterialControlsState extends State<MaterialControls>
       opacity: notifier.hideStuff ? 0.0 : 1.0,
       duration: const Duration(milliseconds: 300),
       child: Container(
-        height: barHeight + (chewieController.isFullScreen ? 10.0 : 0),
-        padding: EdgeInsets.only(
-          left: 20,
-          bottom: !chewieController.isFullScreen ? 10.0 : 0,
-        ),
+        height: barHeight,
+        padding: const EdgeInsets.only(top: 40),
         child: SafeArea(
           top: false,
           bottom: chewieController.isFullScreen,
@@ -269,27 +273,32 @@ class _MaterialControlsState extends State<MaterialControls>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Flexible(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    if (chewieController.isLive)
-                      const Expanded(child: Text('LIVE'))
-                    else
-                      _buildPosition(iconColor),
-                    if (chewieController.allowMuting)
-                      _buildMuteButton(controller),
-                    const Spacer(),
-                    if (chewieController.allowFullScreen) _buildExpandButton(),
-                  ],
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      if (chewieController.isLive)
+                        const Expanded(child: Text('LIVE'))
+                      else
+                        _buildPosition(iconColor),
+                      if (chewieController.allowMuting)
+                        _buildMuteButton(controller),
+                      const Spacer(),
+                      if (chewieController.allowFullScreen) _buildExpandButton(),
+                    ],
+                  ),
                 ),
               ),
               SizedBox(
-                height: chewieController.isFullScreen ? 15.0 : 0,
+                height: chewieController.isFullScreen ? 12.0 : 0,
               ),
               if (!chewieController.isLive)
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.only(right: 20),
+                    padding: const EdgeInsets.only(
+                      top: 10,
+                    ),
                     child: Row(
                       children: [
                         _buildProgressBar(),
@@ -351,12 +360,7 @@ class _MaterialControlsState extends State<MaterialControls>
             right: 8.0,
           ),
           child: Center(
-            child: Icon(
-              chewieController.isFullScreen
-                  ? Icons.fullscreen_exit
-                  : Icons.fullscreen,
-              color: Colors.white,
-            ),
+            child: widget.expandIcon,
           ),
         ),
       ),
@@ -367,6 +371,8 @@ class _MaterialControlsState extends State<MaterialControls>
     final bool isFinished = _latestValue.position >= _latestValue.duration;
     final bool showPlayButton =
         widget.showPlayButton && !_dragging && !notifier.hideStuff;
+    final durationInSeconds = controller.value.duration.inSeconds;
+    final positionInSeconds = controller.value.position.inSeconds;
 
     return GestureDetector(
       onTap: () {
@@ -386,13 +392,53 @@ class _MaterialControlsState extends State<MaterialControls>
           });
         }
       },
-      child: CenterPlayButton(
-        backgroundColor: Colors.black54,
-        iconColor: Colors.white,
-        isFinished: isFinished,
-        isPlaying: controller.value.isPlaying,
-        show: showPlayButton,
-        onPressed: _playPause,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedOpacity(
+            opacity: showPlayButton ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: IconButton(
+              iconSize: 32,
+              padding: const EdgeInsets.all(12.0),
+              icon: widget.moveToPrevious,
+              onPressed: () {
+                controller.seekTo(
+                  Duration(
+                    seconds:
+                        positionInSeconds > 10 ? positionInSeconds - 10 : 0,
+                  ),
+                );
+              },
+            ),
+          ),
+          CenterPlayButton(
+            backgroundColor: Colors.black54,
+            iconColor: Colors.white,
+            isFinished: isFinished,
+            isPlaying: controller.value.isPlaying,
+            show: showPlayButton,
+            onPressed: _playPause,
+          ),
+          AnimatedOpacity(
+            opacity: showPlayButton ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: IconButton(
+              iconSize: 32,
+              padding: const EdgeInsets.all(12.0),
+              icon: widget.moveToNext,
+              onPressed: () {
+                controller.seekTo(
+                  Duration(
+                    seconds: positionInSeconds + 10 > durationInSeconds
+                        ? durationInSeconds
+                        : positionInSeconds + 10,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
